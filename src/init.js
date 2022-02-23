@@ -5,21 +5,20 @@ const config ={
     type: Phaser.AUTO,
     backgroundColor: '#469536',
     scene:{
-        preload: preload,
-        create: create,
-        update: update,
+        preload: this.preload,
+        create: this.create,
+        update: this.update,
     },
     physics:{
         default: 'arcade',
         arcade:{
-            gravity:{
-                y: 500,
-            }
+            debug: true
         }
     }
 }
 
 var game = new Phaser.Game(config);
+console.log(game)
 var limiteSaltoBruno = 200;
 
 function preload(){
@@ -29,74 +28,82 @@ function preload(){
 }
 
 function create(){
-    this.bruno = this.physics.add.sprite(80, 500, "bruno");
-    this.bruno.setScale(0.1);
-    this.bruno.setCollideWorldBounds(true);
-    this.bruno.setBounce(0.4);
-    this.anims.create({
+    game.bruno = this.physics.add.sprite(80, 500, "bruno");
+    game.bruno.setScale(0.1);
+    game.bruno.setCollideWorldBounds(true);
+    game.bruno.setBounce(0.4);
+    game.bruno.body.gravity.y = 500;
+    game.anims.create({
         key: 'bruno_walk',
-        frames: this.anims.generateFrameNumbers('bruno',{
+        frames: game.anims.generateFrameNumbers('bruno',{
             frames:[0,1]
         }),
         frameRate: 10,
         repeat: -1,
     });
-    this.cursor = this.input.keyboard.createCursorKeys();
-    this.bruno.play('bruno_walk')
+    game.cursor = this.input.keyboard.createCursorKeys();
+    game.bruno.play('bruno_walk')
+    //add diego enemy
 
-    this.enemies = this.physics.add.group();
-    this.enemies.setVelocityX(-200);
-    //Detectaremos cuando las columnas salen de la pantalla...
-    this.enemies.checkWorldBounds = true;
-    //... y con la siguiente línea las eliminaremos
-    this.enemies.outOfBoundsKill = true;
+    game.enemies = this.add.group();
+    game.enemies.enableBody = true;
+    game.enemies.physicsBodyType = Phaser.Physics.ARCADE;
 
-    setInterval(() =>{
-        let random = Math.random();
-        console.log(random)
-        if(random > 0.5){
-            console.log('creo ximena')
-            this.ximena = this.physics.add.image(600, 500, "ximena");
-            this.ximena.setScale(0.2);
-            this.enemies.add(this.ximena)
-        }
-        else{
-            console.log('creo diego')
-            this.diego = this.physics.add.sprite(600, 500, "diego");
-            this.diego.setScale(0.2);
-            this.anims.create({
-                key: 'diego_scream',
-                frames: this.anims.generateFrameNumbers('diego', {
-                    frames: [0, 1]
-                }),
-                frameRate: 10,
-                repeat: -1,
-            });
-            this.diego.play('diego_scream');
-            this.diego.setVelocity(-50);
-            this.enemies.add(this.diego)
-        }
-    },2000);
+    game.timer = this.time.addEvent({
+        delay: 1500,
+        callback: addEnemy,
+        callbackScope: this,
+        loop: true
+    });
+
+    game.physics = this.physics
+    game.physics.add.collider(game.bruno, game.enemies, function (plane, obstacle) {
+        game.bruno.destroy()
+        game.enemies.clear(true);
+        game.timer.remove();
+    });
+
+
+}
+
+function addEnemy() {
+    let diego = this.physics.add.sprite(700, 452, "diego");
+    diego.setScale(0.2);
+    this.anims.create({
+        key: 'diego_scream',
+        frames: game.anims.generateFrameNumbers('diego', {
+            frames: [0, 1]
+        }),
+        frameRate: 10,
+        repeat: -1,
+    });
+    diego.play('diego_scream');
+    diego.body.velocity.x = -50;
+    diego.checkWorldBounds = true;
+    diego.outOfBoundsKill = true;
+    // Add the pipe to our previously created group
+    game.enemies.add(diego);
 
 }
 
 
 function update(time, delta){
-    if(this.cursor.up.isDown){
-        if(this.bruno.y >= limiteSaltoBruno) {
-            this.bruno.y -= 10;
-            this.bruno.x += 1;
+
+    if(game.cursor.up.isDown){
+        if(game.bruno.y >= limiteSaltoBruno) {
+            game.bruno.y -= 10;
+            game.bruno.x += 1;
         }
     }
-    else if(this.cursor.left.isDown){
-        this.bruno.flipX = true;
-        this.bruno.x -= 1;
+    else if(game.cursor.left.isDown){
+        game.bruno.flipX = true;
+        game.bruno.x -= 1;
     }
-    else if(this.cursor.right.isDown){
-        this.bruno.flipX = false;
-        this.bruno.x += 1;
+    else if(game.cursor.right.isDown){
+        game.bruno.flipX = false;
+        game.bruno.x += 1;
     }
-    else if(this.cursor.down.isDown){
-        this.bruno.y++;
+    else if(game.cursor.down.isDown){
+        game.bruno.y++;
     }
 }
