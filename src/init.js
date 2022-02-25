@@ -3,7 +3,7 @@ const config ={
     height: 500,
     parent:"container",
     type: Phaser.AUTO,
-    backgroundColor: '#469536',
+    backgroundColor: '#49BE59',
     scene:{
         preload: this.preload,
         create: this.create,
@@ -12,7 +12,7 @@ const config ={
     physics:{
         default: 'arcade',
         arcade:{
-            debug: true
+            debug: false
         }
     }
 }
@@ -28,12 +28,35 @@ function preload(){
     this.load.spritesheet("ximena", "./assets/ximena-sprites.png", {frameWidth: 494, frameHeight:494});
     this.load.bitmapFont('carrier_command', './assets/fonts/carrier_command.png', './assets/fonts/carrier_command.xml');
     this.load.audio('audio_theme', './assets/music/theme.wav');
-    this.load.audio('bruno_cry', './assets/music/brunollorando.mp3')
+    this.load.audio('bruno_cry', './assets/music/brunollorando.mp3');
+    this.load.image('score_board', './assets/score-board.png');
+    this.load.image('happy', './assets/happy.png');
+    this.load.image('sad', './assets/sad.png');
+    this.load.image('house', './assets/casa.png');
+    this.load.image('grass', './assets/pasto-pixel.png');
 }
 
 function create(){
     game.bruno = this.physics.add.sprite(80, 500, "bruno");
     game.bruno.setScale(0.1);
+    //houses
+    game.house = this.physics.add.image(710, 250, "house");
+    game.house.setScale(0.3);
+    game.house2 = this.physics.add.image(710, 100, "house");
+    game.house2.setScale(0.3);
+    game.house3 = this.physics.add.image(710, 395, "house");
+    game.house3.setScale(0.3);
+    //grass
+    game.grass = this.physics.add.image(550, 395, "grass");
+    game.grass.setScale(0.08);
+    game.grass = this.physics.add.image(100, 385, "grass");
+    game.grass.setScale(0.08);
+    game.grass = this.physics.add.image(200, 100, "grass");
+    game.grass.setScale(0.08);
+    game.grass = this.physics.add.image(400, 200, "grass");
+    game.grass.setScale(0.08);
+    game.grass = this.physics.add.image(400, 50, "grass");
+    game.grass.setScale(0.08);
     game.bruno.setCollideWorldBounds(true);
     game.bruno.setBounce(0.4);
     game.anims.create({
@@ -46,12 +69,12 @@ function create(){
     });
     game.cursor = this.input.keyboard.createCursorKeys();
     game.bruno.play('bruno_walk')
-    //add diego enemy
-
+    //add  enemies
     game.enemies = this.add.group();
     game.enemies.enableBody = true;
     game.enemies.physicsBodyType = Phaser.Physics.ARCADE;
 
+    //add enemy every n seconds
     game.timer = this.time.addEvent({
         delay: 2000,
         callback: addEnemy,
@@ -59,6 +82,7 @@ function create(){
         loop: true
     });
 
+    //increase enemy velocity each 1.1 seconds
     game.seconds = this.time.addEvent({
         delay: 2000,
         callback: () => velocity *= 1.1,
@@ -66,6 +90,7 @@ function create(){
         loop: true
     });
 
+    //update score
     game.score = this.time.addEvent({
         delay: 200,
         callback: () => score++,
@@ -81,6 +106,8 @@ function create(){
     game.audio.play()
 
     game.physics = this.physics
+    game.context = this
+    game.finalpoints = score
     game.physics.add.collider(game.bruno, game.enemies, function (plane, obstacle) {
         game.bruno.destroy()
         game.audio.destroy();
@@ -88,12 +115,41 @@ function create(){
         game.timer.remove();
         game.seconds.remove();
         game.score.remove();
-        game.audiobruno.play()
+        game.audiobruno.play();
+        //show score
+        //score board
+        game.board = game.context.physics.add.image(400, 250, "score_board");
+        game.board.setScale(0.5);
+
+        game.points = game.context.add.bitmapText(290, 250, 'carrier_command','YOUR POINTS: '+ game.finalpoints,13);
+        game.points.setTint(0x1A1918);
+        game.minPoints = game.context.add.bitmapText(290, 300, 'carrier_command','MIN POINTS: '+ 200,13);
+        game.minPoints.setTint(0x1A1918);
+
+        game.container = game.context.add.container(0, -300);
+        if(game.finalpoints < 200){
+            game.mood = game.context.physics.add.image(400, 180, "sad");
+            game.mood.setScale(0.07);
+            game.result = game.context.add.bitmapText(290, 350, 'carrier_command','YOU LOSS',13);
+            game.result.setTint(0xff0000);
+        }
+        else{
+            game.mood = game.context.physics.add.image(400, 180, "happy");
+            game.mood.setScale(0.09);
+            game.result = game.context.add.bitmapText(290, 350, 'carrier_command','YOU WIN',13);
+            game.result.setTint(0x067715);
+        }
+        game.container.add([game.board,game.points, game.minPoints, game.mood, game.result])
+
+        game.context.tweens.add({
+            targets: game.container,
+            duration: 600,
+            ease: 'Pointer1',
+            y: 0
+        })
     });
-
-
-
 }
+
 
 function addEnemy() {
 
@@ -151,6 +207,7 @@ function createEnemy(){
 
 function update(time, delta){
     this.textScore.text = 'SCORE: '+ score;
+    game.finalpoints = score
     if(game.cursor.up.isDown){
         game.bruno.y -= 5;
     }
